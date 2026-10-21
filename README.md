@@ -1,7 +1,11 @@
+
+
+
 # School dashboard for kids who need structure
 
-A calm, glanceable school dashboard for a child who benefits from visual structure (for example
-with ADHD or dyslexia). It runs on a Raspberry Pi with a screen on the wall, or as a web page on
+https://github.com/user-attachments/assets/169d5b7f-d084-4799-874e-71733e99ee54
+
+A calm, glanceable school dashboard for a child who benefits from visual structure. Runs on a Raspberry Pi with a screen on the wall, or as a web page on
 any computer in your home network.
 
 ![Today view with the current lesson highlighted, packing list and upcoming tests](docs/images/dashboard-today.png)
