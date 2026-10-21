@@ -7,4 +7,8 @@ Wants=network-online.target
 Type=oneshot
 User=__APP_USER__
 WorkingDirectory=__APP_DIR__
+# Hardening: runs as a normal user, cannot gain privileges or modify the system
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
 ExecStart=/usr/bin/python3 __APP_DIR__/fetch.py

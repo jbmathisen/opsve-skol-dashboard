@@ -109,6 +109,8 @@ const SIM_OFFSET = (() => {
 })();
 function now() { return new Date(Date.now() + SIM_OFFSET); }
 function dateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+// The config can be written by anyone on the home network (PUT), so escape it before building the settings form
+function escAttr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function dur(min) { min = Math.max(0, Math.ceil(min)); return min >= 60 ? `${Math.floor(min/60)} h ${min % 60} min` : `${min} min`; }
 
 function startToday(d) {
@@ -210,16 +212,16 @@ function openSettings() {
     <h3>Faser</h3><p class="hint">En uppgift per rad. "Börjar" = minuter före skolstart. Standard: grön 60 till 40, gul 40 till 30, orange 30 till 20, röd 20 till 0.</p>`;
   cfg.phases.forEach((p, i) => {
     h += `<div class="phase-edit" style="border-color:${CC.COLORS[p.id].bg}">
-      <div class="row"><input type="text" id="s_label${i}" value="${p.label.replace(/"/g, '&quot;')}">
+      <div class="row"><input type="text" id="s_label${i}" value="${escAttr(p.label)}">
       <label>Börjar</label><input type="number" id="s_before${i}" min="1" max="240" value="${p.before}"><label>min före skolstart</label></div>
-      <textarea id="s_tasks${i}">${p.tasks.join('\n').replace(/</g, '&lt;')}</textarea></div>`;
+      <textarea id="s_tasks${i}">${escAttr(p.tasks.join('\n'))}</textarea></div>`;
   });
   h += `<h3>Skolstart per dag</h3><p class="hint">Auto = första lektionen i schemat. Fast = en tid du väljer själv.</p><div class="daygrid">`;
   [1,2,3,4,5,6,0].forEach(dn => {
     const r = cfg.days[dn];
     h += `<label>${DAYNAMES[dn]}</label>
       <select id="s_mode${dn}">${[['auto','Auto'],['manual','Fast tid'],['off','Ingen']].map(([v, t]) => `<option value="${v}" ${r.mode === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      <input type="time" id="s_start${dn}" value="${r.start}">`;
+      <input type="time" id="s_start${dn}" value="${escAttr(r.start)}">`;
   });
   h += `</div><div class="actions"><span id="saveMsg"></span><button class="btn" onclick="resetSettings()">Återställ</button>
     <button class="btn" onclick="closeSettings()">Avbryt</button><button class="btn primary" onclick="saveSettings()">Spara</button></div>`;

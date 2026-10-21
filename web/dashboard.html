@@ -564,7 +564,8 @@ function tomorrowStr() {
 function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
 function parseTime(s) { if (!s) return null; const p = s.split(' '); if (p.length<2) return null; const [h,m] = p[1].split(':').map(Number); return h*60+m; }
 function parseDate(s) { return s ? s.split(' ')[0] : null; }
-function formatTime(s) { if (!s) return ''; const p = s.split(' '); return p.length>=2 ? p[1] : ''; }
+// Only ever returns a plain HH:MM, because times are inserted into the page as HTML
+function formatTime(s) { const m = /^\d{4}-\d{2}-\d{2} (\d{1,2}:\d{2})/.exec(s || ''); return m ? m[1] : ''; }
 function diffDays(ds) { const t = new Date(ds+'T00:00:00'); const n = new Date(); n.setHours(0,0,0,0); return Math.ceil((t-n)/(1000*60*60*24)); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
@@ -572,9 +573,11 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s; re
 const KEY_RE = /\b(läxförhör\w*|läxprov\w*|förhör\w*|prov(?:et|en)?|diagnos\w*|redovisning\w*|presentation\w*|inlämning\w*)\b/i;
 const STRONG_LABELS = ['Prov', 'Läxprov', 'Läxförhör', 'Förhör', 'Diagnos'];
 
+// Notes come from the school platform, so they are untrusted: parse them in an inert document
+// (DOMParser never loads images or runs handlers, unlike innerHTML on an element of this page).
 function stripHtml(s) {
-  const d = document.createElement('div');
-  d.innerHTML = (s || '').replace(/<br\s*\/?>|<\/(div|p|li)>/gi, ' ');
+  const html = (s || '').replace(/<br\s*\/?>|<\/(div|p|li)>/gi, ' ');
+  const d = new DOMParser().parseFromString(html, 'text/html').body;
   return (d.textContent || '').replace(/ /g, ' ').trim();
 }
 
@@ -729,7 +732,8 @@ function renderInfo(containerId, dateStr) {
 
 // ---------- Click-to-open full message ----------
 const ITEMS = {};
-function registerItem(key, obj) { ITEMS[key] = obj; return key; }
+// Keys end up inside onclick="openItem('...')" and may contain ids from the platform: keep them to safe characters
+function registerItem(key, obj) { key = String(key).replace(/[^\w:.-]/g, '_'); ITEMS[key] = obj; return key; }
 
 function openItem(key) {
   const o = ITEMS[key];

@@ -60,7 +60,7 @@
       for (let d = 0; d < 7; d++) {
         const r = raw.days[d]; if (!r) continue;
         if (['auto', 'manual', 'off'].includes(r.mode)) cfg.days[d].mode = r.mode;
-        if (toMin(r.start) !== null) cfg.days[d].start = r.start;
+        if (/^\d{2}:\d{2}$/.test(r.start) && toMin(r.start) !== null) cfg.days[d].start = r.start;   // strict: it is put into HTML
       }
     }
     return cfg;

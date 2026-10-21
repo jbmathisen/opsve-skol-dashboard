@@ -21,3 +21,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Local AI tool settings (the shared .claude/settings.json is committed on purpose)
+.claude/settings.local.json

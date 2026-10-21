@@ -31,6 +31,15 @@ All of these are in `.gitignore`. Before every push, run `git status` and look.
   MET Norway. Round them to 2 decimals (about 1 km) or disable weather.
 - **Sharing screenshots or a demo?** Use the `sample` adapter. Real data contains teacher names,
   rooms and notes.
+- **AI assistants see what they read.** Anything an AI coding tool opens is sent to its provider.
+  The repo blocks `.env` for Claude Code (`.claude/settings.json`), Cursor (`.cursorignore`) and Aider
+  (`.aiderignore`); with other tools, check their ignore settings before you create `.env`.
+  Ask the assistant to work with counts and structure rather than reading your child's full schedule.
+- **Logs can contain secrets.** The included adapters never print passwords or calendar links. Before
+  you paste an error anywhere, look it over for anything that looks like a token or a name.
+- **Guest Wi-Fi.** Anyone on the same network can open the dashboard and change the clock settings.
+  Keep the Pi on your private network, not the guest network, and don't give guests the main one if
+  you can avoid it.
 - **Talk with your child** about what the screen shows and where it hangs. It is their schedule.
 
 ## Found a security problem in this repo?

@@ -32,7 +32,7 @@ def login(session: requests.Session, debug: bool) -> None:
     password = os.environ["SCHOOL_PASSWORD"]
 
     # 1. Load the login page and pick up the hidden token the form posts back
-    page = session.get(f"{BASE_URL}/LOGIN-PAGE")
+    page = session.get(f"{BASE_URL}/LOGIN-PAGE", timeout=30)
     page.raise_for_status()
     from bs4 import BeautifulSoup  # pip install beautifulsoup4
     token_input = BeautifulSoup(page.text, "html.parser").find("input", {"name": "HIDDEN-TOKEN-FIELD"})
@@ -41,7 +41,7 @@ def login(session: requests.Session, debug: bool) -> None:
         raise RuntimeError("Hittade inte inloggningsformulärets token. Har sidan ändrats? Se debug_login_page.html")
 
     # 2. Post the form; requests follows the redirects and keeps the session cookie
-    resp = session.post(f"{BASE_URL}/LOGIN-POST-URL", data={
+    resp = session.post(f"{BASE_URL}/LOGIN-POST-URL", timeout=30, data={
         "USERNAME-FIELD": username,
         "PASSWORD-FIELD": password,
         "HIDDEN-TOKEN-FIELD": token_input["value"],
@@ -52,7 +52,8 @@ def login(session: requests.Session, debug: bool) -> None:
     if "LOGIN-PAGE" in resp.url:
         raise RuntimeError("Inloggningen misslyckades. Kontrollera användarnamn och lösenord i .env.")
     if debug:
-        print(f"[DEBUG] inloggad, hamnade på {resp.url}", file=sys.stderr)
+        # never log the password, cookies or full URLs with tokens: logs get pasted into chats and issues
+        print(f"[DEBUG] inloggad (HTTP {resp.status_code})", file=sys.stderr)
 
 
 def fetch(config: dict, start: date, end: date, debug: bool = False) -> dict:
@@ -61,7 +62,7 @@ def fetch(config: dict, start: date, end: date, debug: bool = False) -> dict:
     login(session, debug)
 
     # Ask for the schedule the same way the platform's own calendar page does
-    resp = session.get(f"{BASE_URL}/CALENDAR-ENDPOINT", params={"start": start.isoformat(), "end": end.isoformat()})
+    resp = session.get(f"{BASE_URL}/CALENDAR-ENDPOINT", timeout=30, params={"start": start.isoformat(), "end": end.isoformat()})
     resp.raise_for_status()
 
     events = []

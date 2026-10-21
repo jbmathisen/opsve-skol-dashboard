@@ -22,6 +22,16 @@ Speak the parent's language (the interface is Swedish; many users will be Swedis
    adapter using the parent's own login. Mention that they should check the platform's terms.
 6. When looking at raw responses from a school platform, ask the parent to **redact names, notes
    and IDs** first, or to share only the field names and structure.
+7. **Do not read `.env` yourself**, not even "to check it". Whatever you read is sent to your model
+   provider. To verify that values are set without revealing them, run:
+   `python -c "import os,dotenv; dotenv.load_dotenv(); print({k: bool(os.getenv(k)) for k in ['ICAL_URL','SCHOOL_USERNAME','SCHOOL_PASSWORD']})"`.
+   This repo ships `.claude/settings.json`, `.cursorignore` and `.aiderignore` that block it; never weaken them.
+8. **Be sparing with the child's real data.** Everything you read (`web/school_data.json`, `debug_*`
+   files, `timetable.json`, fetch logs) leaves the computer. Prefer counts and structure
+   (`python fetch.py` prints a summary) over dumping whole files, and tell the parent when you need to
+   look at real content.
+9. **Never print, log or put secrets into error messages** in code you write (adapters included):
+   no passwords, cookies, tokens or full URLs that contain tokens. Logs get pasted into chats.
 
 ## The setup process
 
@@ -57,7 +67,8 @@ Create the personal config: `cp config.example.json config.json`, then pick an a
   Run `python fetch.py --debug` and look at the counts. Check that lessons and tests were classified
   sensibly; tune `ical.test_keywords` in `config.json`.
 - **manual**: `cp timetable.example.json timetable.json`, help the parent fill in the week (they can
-  read it out to you or paste a photo/text of the timetable, which is fine since it stays local),
+  read it out or paste the timetable; mention that this shares it with the AI provider, so leave out
+  names and the school's name, subjects and times are enough),
   set `"adapter": "manual"`.
 - **custom adapter**: copy `adapters/_template.py`. Guide the parent to open the platform in their
   browser, DevTools > Network, find the request that returns the calendar (often JSON), and share

@@ -35,8 +35,16 @@ def _load(source: str) -> str:
     if source.startswith("webcal://"):
         source = "https://" + source[len("webcal://"):]
     if source.startswith(("http://", "https://")):
-        resp = requests.get(source, timeout=30, headers={"User-Agent": "school-dashboard"})
-        resp.raise_for_status()
+        # The link contains a private token: never let it end up in error messages or logs,
+        # which parents may paste into an AI chat or an issue.
+        try:
+            resp = requests.get(source, timeout=30, headers={"User-Agent": "school-dashboard"})
+            resp.raise_for_status()
+        except requests.RequestException as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            raise SystemExit(f"Kunde inte hämta kalendern ({type(e).__name__}"
+                             f"{f', HTTP {status}' if status else ''}). Kontrollera ICAL_URL i .env "
+                             "(länken visas inte här eftersom den är hemlig).") from None
         resp.encoding = resp.encoding or "utf-8"
         return resp.text
     return Path(source).read_text(encoding="utf-8")
