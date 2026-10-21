@@ -1,0 +1,4 @@
+requests>=2.31
+python-dotenv>=1.0
+# only needed if your own adapter parses HTML (see adapters/_template.py):
+# beautifulsoup4>=4.12

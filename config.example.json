@@ -1,0 +1,35 @@
+{
+  "_help": "Copy to config.json (git-ignored) and adjust. No secrets in here: passwords and private calendar links go in .env.",
+
+  "adapter": "sample",
+
+  "ical": {
+    "test_keywords": ["prov", "läxförhör", "förhör", "diagnos", "redovisning", "presentation", "inlämning"]
+  },
+  "manual": {
+    "file": "timetable.json"
+  },
+
+  "weather": {
+    "enabled": true,
+    "lat": 59.3293,
+    "lon": 18.0686,
+    "user_agent": "school-dashboard github.com/jbmathisen/opsve-skol-dashboard"
+  },
+
+  "activities": [
+    { "title": "Fotboll", "weekday": 1, "start": "17:00", "end": "18:30" },
+    { "title": "Simning", "weekday": 3, "start": "18:00", "end": "19:00" }
+  ],
+
+  "remember_keywords": [
+    "ta med", "dator", "material", "gympakläder", "idrottskläder", "byteskläder",
+    "utekläder", "bok med", "glöm ej", "glöm inte", "kom ihåg"
+  ],
+
+  "screen": {
+    "weekday_on": "06:30",
+    "weekend_on": "10:00",
+    "off": "21:30"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "_help": "Copy to timetable.json (git-ignored) and replace with your child's week. Times are HH:MM. 'note' is optional and feeds the 'Ta med' list, e.g. 'Ta med idrottskläder'.",
+  "week": {
+    "mon": [
+      { "start": "08:10", "end": "09:00", "subject": "Matematik", "room": "Sal 12" },
+      { "start": "09:15", "end": "10:15", "subject": "Svenska", "room": "Sal 7" }
+    ],
+    "tue": [
+      { "start": "08:30", "end": "09:30", "subject": "Idrott och hälsa", "room": "Idrottshallen", "note": "Ta med idrottskläder" }
+    ],
+    "wed": [],
+    "thu": [],
+    "fri": []
+  },
+  "tests": [
+    { "date": "2026-11-12", "time": "08:10", "subject": "Matematik", "title": "Prov kapitel 4", "type": "Prov", "description": "Bråk och procent" }
+  ],
+  "no_school": ["2026-11-02", "2026-11-03"]
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klockan</title>
+<style>
+  :root { --bg: #2b2a28; --fg: #f3efe9; --panel: rgba(255,255,255,0.16); --panel-fg: inherit; --btn: rgba(0,0,0,0.25); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+    transition: background 1s ease, color 1s ease;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .bar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; padding: 14px 18px; align-items: center; }
+  .bar-r { justify-self: end; } .btn.big { font-size: 22px; padding: 12px 28px; }
+  .btn {
+    background: var(--btn); color: inherit; border: 2px solid currentColor; border-radius: 14px;
+    font: 600 16px 'Inter', system-ui, sans-serif; padding: 10px 16px; cursor: pointer; text-decoration: none;
+  }
+  .btn.on { background: currentColor; }
+  .btn.on span { color: var(--bg); }
+  .main { flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; padding: 0 28px 24px; align-items: center; min-height: 0; }
+  .clockwrap { display: flex; align-items: center; justify-content: center; min-height: 0; height: 100%; }
+
+  /* Digital */
+  .digital { font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 2px; line-height: 1; font-size: min(26vw, 44vh); }
+  /* Analog */
+  svg.analog { height: min(100%, 78vh); width: auto; max-width: 100%; }
+
+  .info { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .headline { font-size: 44px; font-weight: 800; line-height: 1.1; }
+  .countdown { font-size: 30px; font-weight: 600; opacity: 0.95; }
+  .tasks { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+  .task {
+    display: flex; align-items: center; gap: 16px; background: var(--panel); border-radius: 18px;
+    padding: 16px 20px; font-size: 30px; font-weight: 700; cursor: pointer; user-select: none;
+  }
+  .task .box { width: 38px; height: 38px; border: 4px solid currentColor; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .task.done { opacity: 0.55; text-decoration: line-through; }
+  .sub { font-size: 20px; opacity: 0.85; }
+
+  @media (max-width: 800px) {
+    .main { grid-template-columns: 1fr; overflow-y: auto; }
+    .headline { font-size: 32px; } .task { font-size: 24px; }
+  }
+
+  /* Settings */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 20; }
+  .overlay.open { display: flex; }
+  .settings {
+    background: #fffaf3; color: #2d2a26; border-radius: 20px; width: min(920px, 96vw); max-height: 94vh; overflow-y: auto; padding: 24px;
+  }
+  .settings h2 { font-size: 24px; margin-bottom: 4px; }
+  .settings h3 { font-size: 17px; margin: 20px 0 8px; }
+  .settings p.hint { font-size: 14px; color: #6b655e; margin-bottom: 8px; }
+  .settings label { font-size: 15px; font-weight: 600; }
+  .settings input[type=number], .settings input[type=time], .settings input[type=text], .settings select, .settings textarea {
+    font: 500 16px 'Inter', system-ui, sans-serif; padding: 8px 10px; border: 2px solid #d9d2c8; border-radius: 10px; background: #fff; color: inherit;
+  }
+  .settings textarea { width: 100%; height: 84px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .phase-edit { border-left: 12px solid; border-radius: 6px; padding: 8px 14px 6px; margin-bottom: 12px; background: #fff; }
+  .phase-edit .row input[type=text] { flex: 1; min-width: 160px; }
+  .daygrid { display: grid; grid-template-columns: 110px 130px 130px; gap: 8px; align-items: center; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; align-items: center; }
+  .actions .btn { color: #2d2a26; background: #fff; }
+  .actions .btn.primary { background: #2d2a26; color: #fff; }
+  #saveMsg { font-size: 14px; color: #6b655e; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-l"><button class="btn" id="viewBtn" onclick="toggleView()"></button></div>
+  <a class="btn big" href="dashboard.html#today">📅 Schema</a>
+  <div class="bar-r"><button class="btn" onclick="openSettings()" aria-label="Inställningar">⚙️ Inställningar</button></div>
+</div>
+
+<div class="main">
+  <div class="clockwrap" id="clockWrap"></div>
+  <div class="info">
+    <div class="headline" id="headline"></div>
+    <div class="countdown" id="countdown"></div>
+    <div class="tasks" id="tasks"></div>
+    <div class="sub" id="sub"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if (event.target === this) closeSettings()">
+  <div class="settings" id="settings"></div>
+</div>
+
+<script src="clock-core.js"></script>
+<script>
+const CC = window.ClockCore;
+const DAYNAMES = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+const NEUTRAL = { bg: '#2b2a28', fg: '#f3efe9' };
+let cfg = CC.clone(CC.DEFAULTS);
+let data = null;
+
+// ?time=07:12 simulates the clock (handy for testing colours): time then keeps ticking from there.
+const SIM_OFFSET = (() => {
+  const t = CC.toMin(new URLSearchParams(location.search).get('time'));
+  if (t === null) return 0;
+  const n = new Date(); return t * 60000 - ((n.getHours() * 60 + n.getMinutes()) * 60000 + n.getSeconds() * 1000);
+})();
+function now() { return new Date(Date.now() + SIM_OFFSET); }
+function dateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function dur(min) { min = Math.max(0, Math.ceil(min)); return min >= 60 ? `${Math.floor(min/60)} h ${min % 60} min` : `${min} min`; }
+
+function startToday(d) {
+  const q = CC.toMin(new URLSearchParams(location.search).get('start'));
+  return q !== null ? q : CC.startFor(d, dateStr(d), data, cfg);
+}
+
+// ---------- doneness of tasks (per day, kept in localStorage) ----------
+function doneKey() { return 'clockDone-' + dateStr(now()); }
+function getDone() { try { return JSON.parse(localStorage.getItem(doneKey())) || {}; } catch { return {}; } }
+function toggleTask(key) {
+  const d = getDone(); d[key] = !d[key];
+  try { localStorage.setItem(doneKey(), JSON.stringify(d)); } catch {}
+  render();
+}
+
+// ---------- clocks ----------
+function digitalHTML(d) { return `<div class="digital">${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</div>`; }
+
+function pt(r, deg) { const a = (deg - 90) * Math.PI / 180; return [200 + r * Math.cos(a), 200 + r * Math.sin(a)]; }
+function arc(r, d0, d1) {
+  const [x0, y0] = pt(r, d0), [x1, y1] = pt(r, d1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${(d1 - d0) % 360 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+function analogHTML(d, start) {
+  const min = d.getHours() * 60 + d.getMinutes(), sec = d.getSeconds();
+  let s = `<svg class="analog" viewBox="0 0 400 400"><circle cx="200" cy="200" r="196" fill="#ffffff"/>`;
+  if (start !== null) {   // coloured rim segments, like the phases drawn on a real clock
+    cfg.phases.forEach((p, i) => {
+      const a = start - p.before, b = i + 1 < cfg.phases.length ? start - cfg.phases[i + 1].before : start + Math.max(cfg.afterMin, 1);
+      const d0 = ((a % 720 + 720) % 720) / 2, d1 = d0 + (b - a) / 2;
+      s += `<path d="${arc(181, d0, d1)}" fill="none" stroke="${CC.COLORS[p.id].bg}" stroke-width="22" stroke-linecap="butt"/>`;
+    });
+  }
+  for (let i = 0; i < 60; i++) {
+    const [x0, y0] = pt(i % 5 ? 166 : 160, i * 6), [x1, y1] = pt(172, i * 6);
+    s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="#2d2a26" stroke-width="${i % 5 ? 1.5 : 3}"/>`;
+  }
+  for (let h = 1; h <= 12; h++) { const [x, y] = pt(135, h * 30); s += `<text x="${x}" y="${y}" font-size="38" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#2d2a26">${h}</text>`; }
+  const hand = (deg, len, w, col) => { const [x, y] = pt(len, deg); return `<line x1="200" y1="200" x2="${x}" y2="${y}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`; };
+  s += hand(((d.getHours() % 12) + d.getMinutes() / 60) * 30, 85, 9, '#2d2a26');
+  s += hand((d.getMinutes() + sec / 60) * 6, 130, 6, '#2d2a26');
+  s += hand(sec * 6, 150, 2, '#d62828');
+  return s + `<circle cx="200" cy="200" r="8" fill="#d62828"/></svg>`;
+}
+
+// ---------- main render ----------
+function render() {
+  const d = now(), nowMin = d.getHours() * 60 + d.getMinutes();
+  const start = startToday(d);
+  const info = CC.phaseInfo(nowMin, start, cfg);
+
+  if (new URLSearchParams(location.search).has('auto') && info.state !== 'active' && !SIM_OFFSET) { location.href = 'dashboard.html'; return; }
+  const col = info.state === 'active' ? CC.COLORS[info.phase.id] : NEUTRAL;
+  document.documentElement.style.setProperty('--bg', col.bg);
+  document.documentElement.style.setProperty('--fg', col.fg);
+
+  document.getElementById('viewBtn').textContent = cfg.view === 'digital' ? '🕐 Visa visarklocka' : '🔢 Visa siffror';
+  document.getElementById('clockWrap').innerHTML = cfg.view === 'digital' ? digitalHTML(d) : analogHTML(d, start);
+
+  const head = document.getElementById('headline'), cd = document.getElementById('countdown'),
+        tasks = document.getElementById('tasks'), sub = document.getElementById('sub');
+  tasks.innerHTML = ''; sub.textContent = '';
+
+  if (info.state === 'active') {
+    head.textContent = info.phase.label;
+    cd.textContent = info.untilSchool > 0 ? `Skolan börjar om ${dur(info.untilSchool)} (kl ${CC.fmt(start)})` : 'Skolan har börjat!';
+    const done = getDone();
+    info.phase.tasks.forEach(t => {
+      const key = info.phase.id + '|' + t, on = !!done[key];
+      const el = document.createElement('div');
+      el.className = 'task' + (on ? ' done' : '');
+      el.innerHTML = `<div class="box">${on ? '✓' : ''}</div><div></div>`;
+      el.lastChild.textContent = t;
+      el.onclick = () => toggleTask(key);
+      tasks.appendChild(el);
+    });
+  } else if (info.state === 'before') {
+    head.textContent = 'Än så länge lugnt';
+    cd.textContent = `Det är dags att göra dig redo kl ${CC.fmt(info.startsAt)}`;
+    sub.textContent = `Skolan börjar kl ${CC.fmt(start)}`;
+  } else if (info.state === 'done') {
+    head.textContent = 'Ha en bra dag! 🌟';
+    cd.textContent = '';
+  } else {
+    head.textContent = 'Ingen skola idag 🎉';
+    cd.textContent = DAYNAMES[d.getDay()];
+  }
+}
+
+function toggleView() { cfg.view = cfg.view === 'digital' ? 'analog' : 'digital'; CC.saveConfig(cfg); render(); }
+
+// ---------- settings ----------
+function openSettings() {
+  const dayOrder = [1, 2, 3, 4, 5, 6, 0];
+  let h = `<h2>Inställningar för klockan</h2><p class="hint">Tiderna räknas bakåt från när skolan börjar.</p>
+    <div class="row"><label>Röd fas varar efter skolstart (min)</label><input type="number" id="s_after" min="0" max="60" value="${cfg.afterMin}"></div>
+    <div class="row"><input type="checkbox" id="s_auto" ${cfg.autoShow ? 'checked' : ''}><label for="s_auto">Visa klockan automatiskt på dashboarden på morgonen</label></div>
+    <h3>Faser</h3><p class="hint">En uppgift per rad. "Börjar" = minuter före skolstart. Standard: grön 60 till 40, gul 40 till 30, orange 30 till 20, röd 20 till 0.</p>`;
+  cfg.phases.forEach((p, i) => {
+    h += `<div class="phase-edit" style="border-color:${CC.COLORS[p.id].bg}">
+      <div class="row"><input type="text" id="s_label${i}" value="${p.label.replace(/"/g, '&quot;')}">
+      <label>Börjar</label><input type="number" id="s_before${i}" min="1" max="240" value="${p.before}"><label>min före skolstart</label></div>
+      <textarea id="s_tasks${i}">${p.tasks.join('\n').replace(/</g, '&lt;')}</textarea></div>`;
+  });
+  h += `<h3>Skolstart per dag</h3><p class="hint">Auto = första lektionen i schemat. Fast = en tid du väljer själv.</p><div class="daygrid">`;
+  [1,2,3,4,5,6,0].forEach(dn => {
+    const r = cfg.days[dn];
+    h += `<label>${DAYNAMES[dn]}</label>
+      <select id="s_mode${dn}">${[['auto','Auto'],['manual','Fast tid'],['off','Ingen']].map(([v, t]) => `<option value="${v}" ${r.mode === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <input type="time" id="s_start${dn}" value="${r.start}">`;
+  });
+  h += `</div><div class="actions"><span id="saveMsg"></span><button class="btn" onclick="resetSettings()">Återställ</button>
+    <button class="btn" onclick="closeSettings()">Avbryt</button><button class="btn primary" onclick="saveSettings()">Spara</button></div>`;
+  document.getElementById('settings').innerHTML = h;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('overlay').classList.remove('open'); }
+function resetSettings() { cfg = CC.clone(CC.DEFAULTS); openSettings(); }
+async function saveSettings() {
+  const v = id => document.getElementById(id);
+  const raw = {
+    afterMin: +v('s_after').value, autoShow: v('s_auto').checked, view: cfg.view,
+    phases: cfg.phases.map((p, i) => ({ label: v('s_label' + i).value, before: +v('s_before' + i).value, tasks: v('s_tasks' + i).value.split('\n') })),
+    days: {},
+  };
+  for (let dn = 0; dn < 7; dn++) raw.days[dn] = { mode: v('s_mode' + dn).value, start: v('s_start' + dn).value };
+  cfg = CC.normalize(raw);
+  const ok = await CC.saveConfig(cfg);
+  v('saveMsg').textContent = ok ? 'Sparat ✓' : 'Sparat i den här webbläsaren (kunde inte nå servern)';
+  render();
+  if (ok) setTimeout(closeSettings, 600);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+// ---------- boot ----------
+async function boot() {
+  cfg = await CC.loadConfig();
+  try { data = await (await fetch('school_data.json?_=' + Date.now())).json(); } catch {}
+  render();
+  setInterval(render, 1000);
+  setInterval(async () => { try { data = await (await fetch('school_data.json?_=' + Date.now())).json(); } catch {} }, 30 * 60 * 1000);
+}
+boot();
+</script>
+</body>
+</html>

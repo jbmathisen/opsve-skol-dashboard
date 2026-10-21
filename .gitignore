@@ -1,0 +1,23 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Your personal setup (describes your child's real week, location and routines)
+config.json
+timetable.json
+*.ics
+
+# Generated data and settings written at runtime
+web/school_data.json
+web/clock_config.json
+
+# Raw platform responses saved while debugging an adapter (may contain personal data)
+debug_*
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

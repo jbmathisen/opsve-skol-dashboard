@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skoldashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f0eb;
+    --card: #ffffff;
+    --text: #2d2a26;
+    --text-muted: #7a7570;
+    --accent-now: #e8785e;
+    --accent-next: #5b9bd5;
+    --accent-remind: #d4a843;
+    --accent-test: #9b6bb0;
+    --accent-study: #4a9e7e;
+    --accent-gym: #e07b9a;
+    --border: #e8e2db;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --radius: 16px;
+    --tint-now-soft: #fff5f2; --tint-next-soft: #f0f6fc; --tint-study-soft: #edf7f2; --tint-test-soft: #f9eef3;
+    --tint-now: #fce8e4; --tint-next: #e4f0fc; --tint-gym: #fce4ed; --tint-study: #e0f2ea;
+    --tint-test: #f3edf7; --tint-remind: #fdf3e0;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14120f;
+    --card: #1e1b18;
+    --text: #d9d3cb;
+    --text-muted: #8f8982;
+    --accent-now: #e8886f;
+    --accent-next: #6fa8dc;
+    --accent-remind: #d9b05a;
+    --accent-test: #b088c4;
+    --accent-study: #5bb08f;
+    --accent-gym: #e68ba8;
+    --border: #2f2b27;
+    --shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --tint-now-soft: #2a1e1a; --tint-next-soft: #1b2430; --tint-study-soft: #1a2a23; --tint-test-soft: #2a2030;
+    --tint-now: #3a2520; --tint-next: #1f3045; --tint-gym: #3a2230; --tint-study: #1f3a2f;
+    --tint-test: #2e2338; --tint-remind: #3a3018;
+    color-scheme: dark;
+  }
+  .theme-btn {
+    position: fixed; bottom: 12px; right: 12px; z-index: 10;
+    background: var(--card); color: var(--text-muted); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 12px; font: 500 13px 'Inter', system-ui, sans-serif; cursor: pointer;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .clock {
+    font-size: 26px; font-weight: 800; letter-spacing: 1px; line-height: 1;
+    font-variant-numeric: tabular-nums; padding-top: 4px;
+    color: inherit; text-decoration: none; justify-self: center; cursor: pointer;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .date-sub { font-size: 15px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Weather */
+  .weather-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex-shrink: 0;
+    justify-self: end;
+  }
+  .weather-card {
+    text-align: center;
+    padding: 10px 16px;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    min-width: 100px;
+  }
+  .weather-card .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+  .weather-card .icon { font-size: 28px; margin: 4px 0; }
+  .weather-card .temp { font-size: 20px; font-weight: 700; }
+  .weather-card .detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Tab toggle */
+  .tab-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: var(--shadow);
+    width: fit-content;
+  }
+  .tab-btn {
+    padding: 10px 24px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+  }
+  .tab-btn:hover { background: var(--bg); }
+  .tab-btn.active { background: var(--text); color: var(--bg); font-weight: 600; }
+
+  /* Main grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* Timeline */
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+
+  .tl-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+    border-left: 5px solid transparent;
+    transition: transform 0.15s ease;
+  }
+  .tl-item:hover { transform: translateY(-1px); }
+  .tl-item.is-now { border-left-color: var(--accent-now); background: linear-gradient(135deg, var(--tint-now-soft) 0%, var(--card) 40%); }
+  .tl-item.is-next { border-left-color: var(--accent-next); background: linear-gradient(135deg, var(--tint-next-soft) 0%, var(--card) 40%); }
+  .tl-item.is-past { opacity: 0.45; }
+  .tl-item.is-gym { border-left-color: var(--accent-gym); }
+  .tl-item.is-study { border-left-color: var(--accent-study); background: linear-gradient(135deg, var(--tint-study-soft) 0%, var(--card) 40%); }
+
+  .tl-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+  }
+  .tl-time .t-start { font-size: 18px; font-weight: 600; }
+  .tl-time .t-end { font-size: 12px; color: var(--text-muted); }
+  .tl-time .countdown {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    color: white;
+  }
+  .is-now .countdown { background: var(--accent-now); }
+  .is-next .countdown { background: var(--accent-next); }
+
+  .tl-info h3 { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
+  .tl-info .loc { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+  .tl-info .note {
+    font-size: 13px; line-height: 1.5; white-space: pre-line; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  }
+  .tl-info .more { font-size: 12px; color: var(--accent-next); font-weight: 500; margin-top: 2px; }
+  .tl-item.clickable, .week-event.clickable, .test-item.clickable { cursor: pointer; }
+  .tl-item.has-key { border-left-color: var(--accent-test); background: linear-gradient(135deg, var(--tint-test-soft) 0%, var(--card) 45%); }
+  .key-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 5px; }
+  .key-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+  .key-chip.strong { background: var(--accent-test); color: #fff; }
+  .key-chip.soft { background: var(--tint-test); color: var(--accent-test); }
+
+  /* Week summary */
+  .week-key { background: var(--card); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow);
+    border-left: 5px solid var(--accent-test); margin-bottom: 20px; }
+  .week-key h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .week-key-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .week-key-item:last-child { border-bottom: none; }
+  .week-key-item .when { width: 92px; flex-shrink: 0; font-weight: 600; }
+  .week-key-item .what { flex: 1; }
+  .week-key-item .what small { display: block; color: var(--text-muted); font-size: 12px; }
+  .week-event.has-key { background: var(--tint-test-soft); border-radius: 8px; padding: 8px 10px; border-left: 4px solid var(--accent-test); }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); color: var(--text); border-radius: 20px; padding: 26px 28px; width: 100%; max-width: 680px;
+    max-height: 88vh; overflow-y: auto; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+  .modal-close { position: absolute; top: 12px; right: 14px; width: 44px; height: 44px; border-radius: 50%; border: none;
+    background: var(--border); color: var(--text); font-size: 20px; cursor: pointer; }
+  .modal h2 { font-size: 22px; font-weight: 700; padding-right: 48px; margin-bottom: 4px; }
+  .modal .m-meta { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+  .modal .m-text { font-size: 17px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-top: 10px; }
+  .modal .m-sec { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .modal .m-sec h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 4px; }
+
+  .tl-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+  }
+  .badge-now { background: var(--tint-now); color: var(--accent-now); }
+  .badge-next { background: var(--tint-next); color: var(--accent-next); }
+  .badge-gym { background: var(--tint-gym); color: var(--accent-gym); }
+  .badge-study { background: var(--tint-study); color: var(--accent-study); }
+
+  /* Sidebar cards */
+  .sidebar { display: flex; flex-direction: column; gap: 20px; }
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Checklist */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .check-text { font-size: 13px; line-height: 1.5; }
+  .check-subject { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+  /* Test cards */
+  .test-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .test-item:last-child { border-bottom: none; }
+  .test-cd {
+    min-width: 48px;
+    height: 48px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: var(--tint-test);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .test-cd .num { font-size: 18px; font-weight: 700; color: var(--accent-test); line-height: 1; }
+  .test-cd .num.word { font-size: 13px; }   /* "Idag!" / "Imorgon" instead of a number */
+  .test-cd .unit { font-size: 11px; color: var(--accent-test); font-weight: 500; }
+  .test-cd.urgent { background: var(--tint-now); }
+  .test-cd.urgent .num, .test-cd.urgent .unit { color: var(--accent-now); }
+  .test-info h4 { font-size: 15px; font-weight: 600; }
+  .test-info .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .test-type {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--tint-test);
+    color: var(--accent-test);
+    margin-right: 4px;
+  }
+
+  /* Study task in sidebar */
+  .study-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .study-sidebar-item:last-child { border-bottom: none; }
+  .study-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--tint-study);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .study-detail h4 { font-size: 14px; font-weight: 600; }
+  .study-detail .sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .study-detail .mins { font-size: 12px; color: var(--accent-study); font-weight: 600; }
+  .ai-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--tint-study); color: var(--accent-study); margin-left: 4px; vertical-align: middle; }
+
+  /* Tomorrow preview */
+  .tomorrow-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .tomorrow-item:last-child { border-bottom: none; }
+  .tomorrow-time { font-size: 14px; font-weight: 600; width: 50px; flex-shrink: 0; }
+  .tomorrow-title { font-size: 13px; }
+  .tomorrow-loc { font-size: 12px; color: var(--text-muted); }
+
+  .empty-state { text-align: center; padding: 24px 12px; color: var(--text-muted); font-size: 14px; }
+
+  .update-info { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 16px; opacity: 0.6; }
+
+  /* Week view */
+  .week-day { margin-bottom: 16px; }
+  .week-day-header {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .week-day-header .day-date { color: var(--text-muted); font-weight: 400; }
+  .week-day-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow);
+  }
+  .week-event {
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .week-event:last-child { border-bottom: none; }
+  .week-event-time { font-size: 14px; font-weight: 600; width: 50px; flex-shrink: 0; color: var(--text); }
+  .week-event-info { flex: 1; }
+  .week-event-title { font-size: 14px; font-weight: 500; }
+  .week-event-note { font-size: 12px; color: var(--text-muted); margin-top: 2px; max-height: 40px; overflow: hidden; }
+  .week-event.is-test { background: var(--tint-test-soft); border-radius: 8px; padding: 8px 10px; border-left: 4px solid var(--accent-test); }
+  .week-event.is-gym { border-left: 4px solid var(--accent-gym); padding-left: 10px; border-radius: 6px; }
+  .week-event.is-study { border-left: 4px solid var(--accent-study); padding-left: 10px; border-radius: 6px; }
+  .week-event-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+
+  /* Highlights */
+  .highlight-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .highlight-item:last-child { border-bottom: none; }
+  .highlight-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .highlight-icon.test { background: var(--tint-test); }
+  .highlight-icon.gym { background: var(--tint-gym); }
+  .highlight-icon.remind { background: var(--tint-remind); }
+  .highlight-text { font-size: 13px; font-weight: 500; }
+  .highlight-sub { font-size: 12px; color: var(--text-muted); }
+
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    body { padding: 16px; }
+    .header { grid-template-columns: 1fr; }
+    .weather-row { justify-self: start; }
+  }
+#sleepShade { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; cursor: none; }
+body.sleeping #sleepShade { display: block; }
+</style>
+</head>
+<body>
+<div id="sleepShade"></div>
+
+<div class="header">
+  <div>
+    <h1 id="greeting"></h1>
+    <div class="date-sub" id="dateSub"></div>
+  </div>
+  <a class="clock" id="clock" href="clock.html" title="Öppna klockan"></a>
+  <div class="weather-row" id="weatherRow"></div>
+</div>
+
+<div class="tab-row">
+  <button class="tab-btn active" onclick="showTab('today')">Idag</button>
+  <button class="tab-btn" onclick="showTab('tomorrow')">Imorgon</button>
+  <button class="tab-btn" onclick="showTab('week')">Nästa vecka</button>
+</div>
+
+<div id="todayView">
+  <div class="grid">
+    <main>
+      <div class="section-title">Din dag</div>
+      <div class="timeline" id="timeline"></div>
+    </main>
+    <aside class="sidebar">
+      <div id="remindSection">
+        <div class="section-title">Ta med</div>
+        <div class="card" id="reminders"></div>
+      </div>
+      <div id="infoSection">
+        <div class="section-title">Kom ihåg</div>
+        <div class="card" id="infoNotes"></div>
+      </div>
+      <div>
+        <div class="section-title">Kommande prov</div>
+        <div class="card" id="tests"></div>
+      </div>
+      <div id="highlightsSection" style="display:none">
+        <div class="section-title">Viktigt nästa vecka</div>
+        <div class="card" id="weekHighlights"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="tomorrowView" style="display:none">
+  <div class="grid">
+    <main>
+      <div class="section-title">Imorgons schema</div>
+      <div class="timeline" id="tomorrowTimeline"></div>
+    </main>
+    <aside class="sidebar">
+      <div>
+        <div class="section-title">Packa ikväll</div>
+        <div class="card" id="packList"></div>
+      </div>
+      <div id="tomorrowInfoSection">
+        <div class="section-title">Kom ihåg till imorgon</div>
+        <div class="card" id="tomorrowInfo"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="weekView" style="display:none">
+  <div class="section-title">Veckoöversikt</div>
+  <div id="weekTimeline"></div>
+</div>
+
+<div class="update-info" id="updateInfo"></div>
+
+<div class="modal-overlay" id="modal" onclick="if (event.target === this) closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Stäng">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<button class="theme-btn" id="themeBtn" onclick="cycleTheme()"></button>
+
+<script src="clock-core.js"></script>
+<script>
+const WEEKDAYS = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+const WEATHER_ICONS = {
+  clearsky_day: '☀️', clearsky_night: '🌙',
+  fair_day: '🌤️', fair_night: '🌤️',
+  partlycloudy_day: '⛅', partlycloudy_night: '⛅',
+  cloudy: '☁️',
+  lightrainshowers_day: '🌦️', lightrainshowers_night: '🌦️',
+  rainshowers_day: '🌧️', rainshowers_night: '🌧️',
+  heavyrainshowers_day: '🌧️', heavyrainshowers_night: '🌧️',
+  lightrain: '🌧️', rain: '🌧️', heavyrain: '🌧️',
+  lightsnowshowers_day: '🌨️', lightsnowshowers_night: '🌨️',
+  snowshowers_day: '🌨️', snowshowers_night: '🌨️',
+  lightsnow: '🌨️', snow: '🌨️', heavysnow: '🌨️',
+  fog: '🌫️',
+  lightrainandthunder: '⛈️', rainandthunder: '⛈️',
+  sleet: '🌨️', lightsleet: '🌨️',
+};
+
+// Theme: auto (dark 19:00-07:00) / light / dark. Choice saved in localStorage.
+const THEME_LABELS = { auto: '🌓 Auto', light: '☀️ Ljust', dark: '🌙 Mörkt' };
+function themeMode() { try { return localStorage.getItem('theme') || 'auto'; } catch { return 'auto'; } }
+function applyTheme() {
+  const mode = themeMode();
+  const h = new Date().getHours();
+  const dark = mode === 'dark' || (mode === 'auto' && (h >= 19 || h < 7));
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.getElementById('themeBtn').textContent = THEME_LABELS[mode];
+}
+function cycleTheme() {
+  const next = { auto: 'light', light: 'dark', dark: 'auto' }[themeMode()];
+  try { localStorage.setItem('theme', next); } catch {}
+  applyTheme();
+}
+
+let data = null;
+let currentTab = 'today';
+
+async function loadData() {
+  try {
+    const resp = await fetch('school_data.json?_=' + Date.now());
+    data = await resp.json();
+    render();
+    if (!window._tabInit) { window._tabInit = true; showTab(['today','tomorrow','week'].includes(location.hash.slice(1)) ? location.hash.slice(1) : defaultTab()); }
+  } catch {
+    document.getElementById('timeline').innerHTML = '<div class="empty-state">Kunde inte ladda data. Kör python fetch.py först.</div>';
+  }
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function tomorrowStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function nowMinutes() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+function parseTime(s) { if (!s) return null; const p = s.split(' '); if (p.length<2) return null; const [h,m] = p[1].split(':').map(Number); return h*60+m; }
+function parseDate(s) { return s ? s.split(' ')[0] : null; }
+function formatTime(s) { if (!s) return ''; const p = s.split(' '); return p.length>=2 ? p[1] : ''; }
+function diffDays(ds) { const t = new Date(ds+'T00:00:00'); const n = new Date(); n.setHours(0,0,0,0); return Math.ceil((t-n)/(1000*60*60*24)); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ---------- Key info (prov, läxförhör ...) ----------
+const KEY_RE = /\b(läxförhör\w*|läxprov\w*|förhör\w*|prov(?:et|en)?|diagnos\w*|redovisning\w*|presentation\w*|inlämning\w*)\b/i;
+const STRONG_LABELS = ['Prov', 'Läxprov', 'Läxförhör', 'Förhör', 'Diagnos'];
+
+function stripHtml(s) {
+  const d = document.createElement('div');
+  d.innerHTML = (s || '').replace(/<br\s*\/?>|<\/(div|p|li)>/gi, ' ');
+  return (d.textContent || '').replace(/ /g, ' ').trim();
+}
+
+function keyLabel(str) {
+  const t = (str || '').toLowerCase();
+  if (t.includes('läxförhör')) return 'Läxförhör';
+  if (t.includes('läxprov')) return 'Läxprov';
+  if (t.includes('förhör')) return 'Förhör';
+  if (/\bprov/.test(t)) return 'Prov';
+  if (t.includes('diagnos')) return 'Diagnos';
+  if (t.includes('redovisning')) return 'Redovisning';
+  if (t.includes('presentation')) return 'Presentation';
+  if (t.includes('inlämning')) return 'Inlämning';
+  return null;
+}
+
+function assignmentLabel(a) {
+  return keyLabel(a.title) || (a.type === 'Läxa' ? 'Läxa' : a.type) || 'Uppgift';
+}
+
+function subjMatch(a, b) {
+  a = (a || '').toLowerCase(); b = (b || '').toLowerCase();
+  return !!a && !!b && (a.includes(b) || b.includes(a));
+}
+
+// Prov/läxförhör etc. that belong to a lesson: matched by time, subject, or words in the teacher's text
+function keyInfoForLesson(item, dateStr) {
+  const out = [];
+  const seen = new Set();
+  const start = parseTime(item.start), end = parseTime(item.end);
+
+  for (const a of (data.assignments || [])) {
+    if (parseDate(a.date_text) !== dateStr) continue;
+    const t = parseTime(a.date_text);
+    const timeHit = t !== null && t >= start - 5 && t <= end;
+    if (!timeHit && !subjMatch(a.subject, item.title)) continue;
+    const label = assignmentLabel(a);
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push({label, display: label, strong: STRONG_LABELS.includes(label), from: 'assignment', title: a.title, assignment: a});
+  }
+
+  const sources = [stripHtml(item.text)];
+  for (const r of (data.reminders || [])) {
+    if (r.date === dateStr && subjMatch(r.subject, item.title)) sources.push(stripHtml(r.note));
+  }
+  for (const text of sources) {
+    const m = text.match(KEY_RE);
+    if (!m) continue;
+    const label = keyLabel(m[0]);
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    const clause = splitClauses(text).find(c => KEY_RE.test(c)) || m[0];
+    out.push({label, display: label + ' nämns', strong: false, from: 'text', title: '', snippet: clause.trim().substring(0, 70)});
+  }
+  return out;
+}
+
+function keyChips(keys) {
+  if (!keys.length) return '';
+  return '<div class="key-row">' + keys.map(k =>
+    `<span class="key-chip ${k.strong ? 'strong' : 'soft'}">${k.strong ? '📝 ' : ''}${esc(k.display)}</span>`).join('') + '</div>';
+}
+
+// ---------- Packing list / reminders without repetition ----------
+const PACK_CLAUSE = /ta med|packa|\bdator|hörlur|laddad/i;
+const PACK_DEFS = [
+  {key: 'dator', re: /dator/i, icon: '💻', text: 'Dator'},
+  {key: 'hörlurar', re: /hörlur/i, icon: '🎧', text: 'Hörlurar'},
+  {key: 'mapp', re: /\bmapp/i, icon: '📁', text: 'Mapp'},
+  {key: 'material', re: /material/i, icon: '🎒', text: 'Material'},
+  {key: 'bok', re: /\b(bok|böcker|boken)\b/i, icon: '📖', text: 'Bok'},
+  {key: 'idrott', re: /gympakläder|gymkläder|idrottskläder/i, icon: '👟', text: 'Idrottskläder'},
+  {key: 'ute', re: /utekläder|regnkläder/i, icon: '🧥', text: 'Ute-/regnkläder'},
+];
+
+function splitClauses(text) {
+  return text.replace(/\r?\n/g, ' ').split(/(?<=[.!;])\s+|,\s*|\s+[-–]\s+/).filter(c => c.trim());
+}
+
+function infoText(note) {
+  const kept = splitClauses(stripHtml(note)).filter(c => !PACK_CLAUSE.test(c));
+  const s = kept.map(c => c.replace(/[\s,.;!]+$/, '')).join('. ').replace(/^[A-ZÅÄÖ]{1,3}\s*[-–]\s*/, '').replace(/[\s,.;!-]+$/, '');
+  return s.length >= 8 ? s : '';
+}
+
+// One entry per thing to pack (merged across subjects) + non-packing notes, deduped
+function collectDay(dateStr) {
+  const pack = new Map();
+  const info = [];
+  const infoSeen = new Set();
+  const addPack = (key, icon, text, sub, charged) => {
+    const e = pack.get(key) || {icon, text, subs: [], charged: false};
+    if (sub && !e.subs.includes(sub)) e.subs.push(sub);
+    if (charged) e.charged = true;
+    pack.set(key, e);
+  };
+
+  for (const r of (data.reminders || []).filter(r => r.date === dateStr)) {
+    const note = stripHtml(r.note);
+    const charged = /laddad/i.test(note);
+    for (const clause of splitClauses(note).filter(c => PACK_CLAUSE.test(c))) {
+      for (const def of PACK_DEFS) {
+        if (def.re.test(clause)) addPack(def.key, def.icon, def.text, r.subject, def.key === 'dator' && charged);
+      }
+    }
+    const text = infoText(r.note);
+    const norm = text.toLowerCase();
+    if (text && !infoSeen.has(norm)) { infoSeen.add(norm); info.push({text, sub: r.subject}); }
+  }
+
+  const items = getItemsForDate(dateStr);
+  // After-school activities (extra_activities) are not part of the school packing list
+  const idh = items.find(i => i.kind === 'lesson' && (i.title || '').toLowerCase().includes('idrott'));
+  if (idh) addPack('idrott', '👟', 'Idrottskläder', 'Idrott');
+  return {pack: [...pack.values()], info};
+}
+
+function renderPack(containerId, dateStr, hideWhenEmpty) {
+  const container = document.getElementById(containerId);
+  const section = container.parentElement;
+  const {pack} = collectDay(dateStr);
+  if (pack.length === 0) {
+    section.style.display = hideWhenEmpty ? 'none' : '';
+    container.innerHTML = '<div class="empty-state">Inget speciellt att packa</div>';
+    return;
+  }
+  section.style.display = '';
+  container.innerHTML = pack.map(p => `<div class="check-item">
+      <span class="check-icon">${p.icon}</span>
+      <div>
+        <div class="check-text">${esc(p.text)}${p.charged ? ' (laddad)' : ''}</div>
+        <div class="check-subject">${esc(p.subs.join(', '))}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderInfo(containerId, dateStr) {
+  const container = document.getElementById(containerId);
+  const section = container.parentElement;
+  const {info} = collectDay(dateStr);
+  if (info.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  container.innerHTML = info.map(r => `<div class="check-item">
+      <span class="check-icon">📌</span>
+      <div>
+        <div class="check-text">${esc(r.text)}</div>
+        <div class="check-subject">${esc(r.sub)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ---------- Click-to-open full message ----------
+const ITEMS = {};
+function registerItem(key, obj) { ITEMS[key] = obj; return key; }
+
+function openItem(key) {
+  const o = ITEMS[key];
+  if (!o) return;
+  let h = '';
+  if (o.type === 'lesson') {
+    const it = o.item;
+    h += `<h2>${esc(it.title)}</h2>
+      <div class="m-meta">${formatTime(it.start)}-${formatTime(it.end)}${it.location ? ' · ' + esc(it.location) : ''}</div>`;
+    h += keyChips(o.keys);
+    for (const k of o.keys.filter(k => k.assignment)) {
+      const desc = stripHtml(k.assignment.description);
+      h += `<div class="m-sec"><h4>${esc(k.display)}</h4><div><b>${esc(k.assignment.title)}</b> · ${formatTime(k.assignment.date_text)}</div>
+        ${desc ? `<div class="m-text" style="font-size:15px">${esc(desc)}</div>` : ''}</div>`;
+    }
+    const text = (it.text || '').trim();
+    h += text ? `<div class="m-text">${esc(text)}</div>` : '<div class="m-text" style="color:var(--text-muted)">Inget meddelande från läraren.</div>';
+    const notes = (data.reminders || []).filter(r => r.date === o.dateStr && subjMatch(r.subject, it.title));
+    for (const r of notes) {
+      h += `<div class="m-sec"><h4>Påminnelse</h4><div class="m-text" style="font-size:16px">${esc(stripHtml(r.note))}</div></div>`;
+    }
+  } else if (o.type === 'assignment') {
+    const a = o.a;
+    const desc = stripHtml(a.description);
+    h += `<h2>${esc(a.title)}</h2>
+      <div class="m-meta">${esc(a.subject)} · ${esc(parseDate(a.date_text) || '')} ${formatTime(a.date_text)}</div>
+      <span class="key-chip ${STRONG_LABELS.includes(assignmentLabel(a)) ? 'strong' : 'soft'}">${esc(assignmentLabel(a))}</span>
+      ${desc ? `<div class="m-text">${esc(desc)}</div>` : ''}`;
+  }
+  document.getElementById('modalBody').innerHTML = h;
+  document.getElementById('modal').classList.add('open');
+  lastTouch = Date.now();
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function showTab(tab) {
+  currentTab = tab;
+  document.getElementById('todayView').style.display = tab === 'today' ? '' : 'none';
+  document.getElementById('tomorrowView').style.display = tab === 'tomorrow' ? '' : 'none';
+  document.getElementById('weekView').style.display = tab === 'week' ? '' : 'none';
+  const tabs = ['today', 'tomorrow', 'week'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  if (tab === 'week' && data) renderWeekView();
+}
+
+function render() {
+  if (!data) return;
+  renderGreeting();
+  renderWeather();
+  renderTimeline('timeline', todayStr());
+  renderTimeline('tomorrowTimeline', tomorrowStr());
+  renderPack('reminders', todayStr(), true);
+  renderInfo('infoNotes', todayStr());
+  renderPack('packList', tomorrowStr(), false);
+  renderInfo('tomorrowInfo', tomorrowStr());
+  renderTests();
+  renderHighlights();
+  renderUpdateInfo();
+  if (currentTab === 'week') renderWeekView();
+}
+
+function renderGreeting() {
+  const h = new Date().getHours();
+  let g = 'God morgon';
+  if (h >= 12 && h < 17) g = 'God eftermiddag';
+  else if (h >= 17) g = 'God kväll';
+  document.getElementById('greeting').textContent = g;
+  const d = new Date();
+  const months = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
+  document.getElementById('dateSub').textContent = `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function renderWeather() {
+  const w = data.weather;
+  if (!w) { document.getElementById('weatherRow').innerHTML = ''; return; }
+  let html = '';
+  if (w.today) {
+    const icon = WEATHER_ICONS[w.today.symbol] || '🌡️';
+    html += `<div class="weather-card">
+      <div class="label">Idag</div>
+      <div class="icon">${icon}</div>
+      <div class="temp">${w.today.temp_max}°</div>
+      <div class="detail">${w.today.temp_min}° till ${w.today.temp_max}°</div>
+      ${w.today.precip_max > 0 ? `<div class="detail">💧 ${w.today.precip_max} mm</div>` : ''}
+    </div>`;
+  }
+  if (w.tomorrow) {
+    const icon = WEATHER_ICONS[w.tomorrow.symbol] || '🌡️';
+    html += `<div class="weather-card">
+      <div class="label">Imorgon</div>
+      <div class="icon">${icon}</div>
+      <div class="temp">${w.tomorrow.temp_max}°</div>
+      <div class="detail">${w.tomorrow.temp_min}° till ${w.tomorrow.temp_max}°</div>
+      ${w.tomorrow.precip_max > 0 ? `<div class="detail">💧 ${w.tomorrow.precip_max} mm</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('weatherRow').innerHTML = html;
+}
+
+function getItemsForDate(dateStr) {
+  const lessons = (data.events || [])
+    .filter(e => !e.allDay && parseDate(e.start) === dateStr && e.kind === 'lesson')
+    .map(e => ({...e, sort: parseTime(e.start), kind: 'lesson'}));
+
+  const gym = (data.extra_activities || [])
+    .filter(a => a.date === dateStr)
+    .map(a => ({title: a.title, start: a.start, end: a.end, sort: parseTime(a.start), kind: 'gym', is_extra: true}));
+
+  const studyItems = [];
+  for (const plan of (data.study_plans || [])) {
+    const task = (plan.daily_tasks || []).find(t => t.date === dateStr);
+    if (task) {
+      const startMin = 16 * 60;
+      studyItems.push({
+        title: plan.subject,
+        subtitle: task.task,
+        provTitle: plan.title,
+        minutes: task.minutes,
+        start: `${dateStr} 16:00`,
+        end: `${dateStr} 16:${task.minutes}`,
+        sort: startMin - 1,
+        kind: 'study',
+        ai_generated: plan.ai_generated || false,
+      });
+    }
+  }
+
+  return [...lessons, ...gym, ...studyItems].sort((a, b) => a.sort - b.sort);
+}
+
+let clockCfg = null;   // used by the morning auto-switch to clock.html
+
+function renderTimeline(containerId, dateStr) {
+  const container = document.getElementById(containerId);
+  const isToday = dateStr === todayStr();
+  const now = nowMinutes();
+  const items = getItemsForDate(dateStr);
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty-state">Ingenting planerat denna dag</div>';
+    return;
+  }
+
+  let foundCurrent = false, foundNext = false;
+  let html = '';
+
+  for (const [idx, item] of items.entries()) {
+    let clickAttr = '';
+    const startMin = parseTime(item.start);
+    const endMin = parseTime(item.end);
+    let cls = 'tl-item';
+    let badge = '';
+    let countdown = '';
+
+    if (item.kind === 'gym') {
+      cls += ' is-gym';
+      badge = '<span class="tl-badge badge-gym">Fritid</span>';
+    } else if (item.kind === 'study') {
+      cls += ' is-study';
+      badge = '<span class="tl-badge badge-study">Pluggpass</span>';
+    } else if (isToday) {
+      if (!foundCurrent && now >= startMin && now < endMin) {
+        cls += ' is-now'; foundCurrent = true;
+        badge = '<span class="tl-badge badge-now">Just nu</span>';
+        countdown = `<div class="countdown" style="background:var(--accent-now)">${endMin - now} min kvar</div>`;
+      } else if ((foundCurrent || now >= endMin) && false) {
+        // placeholder
+      } else if (!foundNext && now < startMin && (foundCurrent || !items.some(i => i.kind === 'lesson' && parseTime(i.start) <= now && parseTime(i.end) > now))) {
+        if (!foundCurrent || item.kind === 'lesson') {
+          cls += ' is-next'; foundNext = true;
+          badge = '<span class="tl-badge badge-next">Nästa</span>';
+          countdown = `<div class="countdown" style="background:var(--accent-next)">om ${startMin - now} min</div>`;
+        }
+      }
+      if (now >= endMin && item.kind === 'lesson') cls += ' is-past';
+    }
+
+    const timeStart = formatTime(item.start);
+    const timeEnd = formatTime(item.end);
+
+    let infoHtml = '';
+    if (item.kind === 'study') {
+      const aiBadge = item.ai_generated ? ' <span class="ai-badge">AI</span>' : '';
+      infoHtml = `${badge}<h3>${esc(item.title)}${aiBadge}</h3>
+        <div class="loc">${esc(item.subtitle)} · ${item.minutes} min</div>
+        <div class="note" style="font-size:12px;color:var(--text-muted)">Inför: ${esc(item.provTitle)}</div>`;
+    } else if (item.kind === 'gym') {
+      infoHtml = `${badge}<h3>${esc(item.title)}</h3>`;
+    } else {
+      const loc = item.location || '';
+      const text = (item.text || '').trim();
+      const keys = keyInfoForLesson(item, dateStr);
+      if (keys.length) cls += ' has-key';
+      const regKey = registerItem(containerId + ':' + idx, {type: 'lesson', item, dateStr, keys});
+      clickAttr = ` onclick="openItem('${regKey}')"`;
+      cls += ' clickable';
+      const noteHtml = text ? `<div class="note">${esc(text)}</div>` : '';
+      const more = (text.length > 110 || text.split('\n').length > 3 || keys.length) ? '<div class="more">Tryck för hela meddelandet ›</div>' : '';
+      infoHtml = `${badge}${keyChips(keys)}<h3>${esc(item.title)}</h3>
+        ${loc ? `<div class="loc">${esc(loc)}</div>` : ''}
+        ${noteHtml}${more}`;
+    }
+
+    html += `<div class="${cls}"${clickAttr}>
+      <div class="tl-time">
+        <span class="t-start">${timeStart}</span>
+        <span class="t-end">${timeEnd}</span>
+        ${countdown}
+      </div>
+      <div class="tl-info">${infoHtml}</div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function guessIcon(text) {
+  const t = text.toLowerCase();
+  if (t.includes('dator')) return '💻';
+  if (t.includes('gympakläder') || t.includes('idrottskläder')) return '👟';
+  if (t.includes('bok')) return '📖';
+  if (t.includes('material')) return '🎒';
+  if (t.includes('utekläder') || t.includes('regnkläder')) return '🧥';
+  return '📌';
+}
+
+function renderTests() {
+  const container = document.getElementById('tests');
+  const today = todayStr();
+  const upcoming = (data.assignments || [])
+    .filter(a => a.date_text && parseDate(a.date_text) >= today)
+    .sort((a, b) => a.date_text.localeCompare(b.date_text));
+  if (upcoming.length === 0) { container.innerHTML = '<div class="empty-state">Inga kommande prov</div>'; return; }
+  let html = '';
+  for (const a of upcoming) {
+    const days = diffDays(parseDate(a.date_text));
+    const urgent = days <= 3;
+    const dayLabel = days === 0 ? 'Idag!' : days === 1 ? 'Imorgon' : `${days}`;
+    const unitLabel = days <= 1 ? '' : 'dagar';
+    const desc = a.description ? `<div class="meta" style="margin-top:2px">${esc(a.description.substring(0, 80))}${a.description.length > 80 ? '…' : ''}</div>` : '';
+    const regKey = registerItem('tests:' + a.id, {type: 'assignment', a});
+    html += `<div class="test-item clickable" onclick="openItem('${regKey}')">
+      <div class="test-cd${urgent ? ' urgent' : ''}">
+        <span class="num${days <= 1 ? ' word' : ''}">${dayLabel}</span>
+        ${unitLabel ? `<span class="unit">${unitLabel}</span>` : ''}
+      </div>
+      <div class="test-info">
+        <h4><span class="test-type">${esc(assignmentLabel(a))}</span>${esc(a.title)}</h4>
+        <div class="meta">${esc(a.subject)} · ${formatTime(a.date_text)}</div>
+        ${desc}
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function nextWeekDates() {
+  const today = new Date();
+  const dow = today.getDay();
+  const daysToMon = dow === 0 ? 1 : 8 - dow;
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + daysToMon + i);
+    dates.push({
+      str: d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'),
+      day: WEEKDAYS[d.getDay()],
+      num: d.getDate(),
+      month: ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'][d.getMonth()],
+    });
+  }
+  return dates;
+}
+
+function renderHighlights() {
+  const section = document.getElementById('highlightsSection');
+  const container = document.getElementById('weekHighlights');
+  const dates = nextWeekDates();
+  const dateStrs = dates.map(d => d.str);
+  const items = [];
+
+  for (const a of (data.assignments || [])) {
+    const d = parseDate(a.date_text);
+    if (d && dateStrs.includes(d)) {
+      const dateInfo = dates.find(x => x.str === d);
+      items.push({
+        icon: '📝', iconCls: 'test',
+        text: `${a.title}`,
+        sub: `${a.subject} · ${dateInfo.day} ${dateInfo.num} ${dateInfo.month}`,
+        sort: d,
+      });
+    }
+  }
+
+  for (const d of dates) {
+    const gym = (data.extra_activities || []).filter(a => a.date === d.str);
+    for (const g of gym) {
+      items.push({
+        icon: '⭐', iconCls: 'gym',
+        text: `${g.title} ${formatTime(g.start)}-${formatTime(g.end)}`,
+        sub: `${d.day} ${d.num} ${d.month}`,
+        sort: d.str,
+      });
+    }
+  }
+
+  if (items.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  items.sort((a, b) => a.sort.localeCompare(b.sort));
+
+  let html = '';
+  for (const item of items) {
+    html += `<div class="highlight-item">
+      <div class="highlight-icon ${item.iconCls}">${item.icon}</div>
+      <div>
+        <div class="highlight-text">${esc(item.text)}</div>
+        <div class="highlight-sub">${esc(item.sub)}</div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderWeekView() {
+  const container = document.getElementById('weekTimeline');
+  const dates = nextWeekDates();
+  const summary = [];
+  const matched = new Set();
+  let html = '';
+  let dayHtml = '';
+
+  for (const d of dates) {
+    const items = getItemsForDate(d.str);
+    const lessonKeys = new Map();
+    for (const item of items) {
+      if (item.kind !== 'lesson') continue;
+      const keys = keyInfoForLesson(item, d.str);
+      lessonKeys.set(item, keys);
+      for (const k of keys) {
+        if (k.assignment) matched.add(k.assignment.id);
+        summary.push({d, time: formatTime(item.start), label: k.display, strong: k.strong, title: k.title || item.title,
+          sub: k.from === 'text' ? `${item.title} · ”${k.snippet}”` : item.title});
+      }
+    }
+    const tests = (data.assignments || []).filter(a => parseDate(a.date_text) === d.str && !matched.has(a.id));
+    for (const t of tests) {
+      summary.push({d, time: formatTime(t.date_text), label: assignmentLabel(t), strong: true, title: t.title, sub: t.subject});
+    }
+    if (items.length === 0 && tests.length === 0) continue;
+
+    dayHtml += `<div class="week-day">
+      <div class="week-day-header">${d.day} <span class="day-date">${d.num} ${d.month}</span></div>
+      <div class="week-day-card">`;
+
+    for (const t of tests) {
+      const regKey = registerItem('week:t:' + t.id, {type: 'assignment', a: t});
+      dayHtml += `<div class="week-event is-test clickable" onclick="openItem('${regKey}')">
+        <div class="week-event-time">${formatTime(t.date_text) || ''}</div>
+        <div class="week-event-info">
+          <div class="week-event-title"><span class="week-event-badge" style="background:var(--accent-test);color:#fff">${esc(assignmentLabel(t))}</span>${esc(t.title)}</div>
+          <div class="week-event-note">${esc(t.subject)}</div>
+        </div>
+      </div>`;
+    }
+
+    for (const [idx, item] of items.entries()) {
+      let cls = 'week-event';
+      let note = '';
+      let click = '';
+      let chips = '';
+
+      if (item.kind === 'gym') {
+        cls += ' is-gym';
+      } else if (item.kind === 'study') {
+        cls += ' is-study';
+        note = item.subtitle || '';
+      } else {
+        const keys = lessonKeys.get(item) || [];
+        if (keys.length) cls += ' has-key';
+        chips = keyChips(keys);
+        const text = (item.text || '').trim();
+        if (text) note = text.substring(0, 80) + (text.length > 80 ? '…' : '');
+        const regKey = registerItem(`week:${d.str}:${idx}`, {type: 'lesson', item, dateStr: d.str, keys});
+        click = ` onclick="openItem('${regKey}')"`;
+        cls += ' clickable';
+      }
+
+      dayHtml += `<div class="${cls}"${click}>
+        <div class="week-event-time">${formatTime(item.start)}</div>
+        <div class="week-event-info">
+          ${chips}
+          <div class="week-event-title">${esc(item.title || '')}</div>
+          ${note ? `<div class="week-event-note">${esc(note)}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    dayHtml += '</div></div>';
+  }
+
+  if (summary.length) {
+    html += `<div class="week-key"><h3>⚠️ Viktigt nästa vecka</h3>`;
+    for (const k of summary) {
+      html += `<div class="week-key-item">
+        <div class="when">${k.d.day.substring(0, 3)} ${k.d.num} ${k.d.month}</div>
+        <span class="key-chip ${k.strong ? 'strong' : 'soft'}">${esc(k.label)}</span>
+        <div class="what">${esc(k.title)}<small>${esc(k.sub)}${k.time ? ' · ' + k.time : ''}</small></div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  html += dayHtml;
+
+  if (!dayHtml) {
+    html = '<div class="empty-state">Ingen data för nästa vecka ännu</div>';
+  }
+  container.innerHTML = html;
+}
+
+function renderUpdateInfo() {
+  const el = document.getElementById('updateInfo');
+  if (data.fetched_at) el.textContent = `Uppdaterad: ${data.fetched_at}`;
+}
+
+// ---------- Clock + automatic tab (after 12:00 the main screen is "Imorgon") ----------
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function defaultTab() { return new Date().getHours() >= 12 ? 'tomorrow' : 'today'; }
+
+let lastTouch = Date.now();
+let lastDefault = defaultTab();
+let lastDay = todayStr();
+['click', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastTouch = Date.now(); }, true));
+
+setInterval(updateClock, 5000);
+updateClock();
+setInterval(() => {
+  if (!data) return;
+  if (todayStr() !== lastDay) { lastDay = todayStr(); render(); }
+  const def = defaultTab();
+  if (def !== lastDefault) { lastDefault = def; showTab(def); }
+  else if (currentTab !== def && Date.now() - lastTouch > 3 * 60 * 1000) showTab(def);   // drift back to the main screen when idle
+  else if (currentTab === 'today') { renderTimeline('timeline', todayStr()); renderGreeting(); }
+}, 30000);
+// Morning "get ready" window: switch to the clock page while it is active (unless the screen was just touched)
+async function checkClock() {
+  if (!clockCfg || Date.now() % 600000 < 30000) clockCfg = await ClockCore.loadConfig();
+  if (!clockCfg.autoShow || !data || Date.now() - lastTouch < 5 * 60 * 1000) return;
+  const d = new Date();
+  const info = ClockCore.phaseInfo(d.getHours() * 60 + d.getMinutes(), ClockCore.startFor(d, todayStr(), data, clockCfg), clockCfg);
+  if (info.state === 'active') location.href = 'clock.html?auto=1';
+}
+setInterval(checkClock, 30000);
+setInterval(loadData, 3 * 60 * 60 * 1000);
+setInterval(applyTheme, 60000);
+applyTheme();
+
+// Kiosk night mode: the Pi keeps the HDMI signal on (switching it off made the screen fail to wake up),
+// so at night we just paint everything black. Times come from "screen" in config.json (copied into
+// school_data.json by fetch.py), the same values pi/screen-power.sh uses.
+// Only active when opened with ?kiosk (remembered for the tab), so phones/PCs are never blacked out.
+try { if (new URLSearchParams(location.search).has('kiosk')) sessionStorage.setItem('kiosk', '1'); } catch {}
+function applySleep() {
+  let kiosk = false; try { kiosk = sessionStorage.getItem('kiosk') === '1'; } catch {}
+  const d = new Date(), m = d.getHours() * 60 + d.getMinutes(), weekend = d.getDay() === 0 || d.getDay() === 6;
+  const s = (data && data.screen) || {};
+  const on = ClockCore.toMin(weekend ? s.weekend_on || '10:00' : s.weekday_on || '06:30');
+  const off = ClockCore.toMin(s.off || '21:30');
+  document.body.classList.toggle('sleeping', kiosk && (m < on || m >= off));
+}
+setInterval(applySleep, 30000);
+applySleep();
+ClockCore.loadConfig().then(c => { clockCfg = c; if (data) render(); });
+loadData();
+</script>
+</body>
+</html>
